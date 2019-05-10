@@ -4,6 +4,6 @@ wb = xl.Workbook()
 ws = wb.active
 ws.title = 'Test'
 
-ws['A1'] = 'Hello, world!'
+ws['B1'] = 'Hello, world!'
 
 wb.save(filename='test.xlsx')
