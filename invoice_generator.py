@@ -36,8 +36,6 @@ time_period_start = input('Time period start (mm/dd/yyyy): ')
 time_period_end = input('Time period end (mm/dd/yyyy): ')
 
 df_path = input('Dataframe path: ')
-df_length = int(input('Dataframe length: '))
-
 revenue_path = input('Revenue path: ')
 
 print("Collecting data...")
@@ -61,7 +59,10 @@ for n in range(5, 25):
 wb_df = xl.load_workbook(f'{df_path}', data_only=True)
 for programmer in programmers:
     print(f"Creating invoice for {programmer}")
-    invoice_start = int(input("Column number where the data will start to be placed: "))
+    invoice_start = input("Column number where the data will start to be placed: ")
+    invoice_start = int(invoice_start)
+    df_length = input('Dataframe length: ')
+    df_length = int(df_length)
 
     # All invoices from CANOE_INVOICE_APR_2019 starts at the column 27, for some weird reason CW starts at 28
     invoice_map['data_starts'] = f"C{invoice_start}"
@@ -71,7 +72,7 @@ for programmer in programmers:
         ws_df = wb_df.get_sheet_by_name(programmer)
         print(Fore.WHITE + '[' + Fore.GREEN + "SUCCESS" + Fore.WHITE + ']')
 
-        old_invoice_path = input(f"Path for an old invoice for {programmer}: ")
+        old_invoice_path = input(f"Path of an old invoice for {programmer}: ")
 
         file_name_date = today.isoformat().replace('-', '')
         file_name_programmer = programmer.replace(' ', '_')
