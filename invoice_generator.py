@@ -4,19 +4,14 @@ from colorama import Fore
 
 # Immutable Data
 
-invoice_start = int(input("Column number where the data will start to be placed: "))
 invoice_map = {
 # Header
     'date': 'L1', 'invoice_num': 'L2', 'period_start': 'D18', 'period_end': 'D19', 'previous_YTD_imp': 'D22', 'YTD_imp': 'K17',
 # Body
-    # All invoices from CANOE_INVOICE_APR_2019 starts at the column 27, for some weird reason CW starts at 28
-    'data_starts': f"C{invoice_start}", 'data_ends': f"J{invoice_start}",
-    # Data columns
     'campaign_id': 'C', 'campaign_name': 'D', 'network': 'E', 'start_date': 'F', 'end_date': 'G', 'campaign_goal': 'H', 'total_imp': 'I',
     'month_imp': 'J', 'cpm':  'K', 'total': 'L',
 }
 
-# Dataframe Column Map
 df_map = {
     'campaign_id': 'A', 'campaign_name': 'B', 'network': 'C',
     'start_date': 'D', 'end_date': 'E',
@@ -65,6 +60,13 @@ for n in range(5, 25):
 
 wb_df = xl.load_workbook(f'{df_path}', data_only=True)
 for programmer in programmers:
+    print(f"Creating invoice for {programmer}")
+    invoice_start = int(input("Column number where the data will start to be placed: "))
+
+    # All invoices from CANOE_INVOICE_APR_2019 starts at the column 27, for some weird reason CW starts at 28
+    invoice_map['data_starts'] = f"C{invoice_start}"
+    invoice_map['data_ends'] = f"J{invoice_start}"
+
     try:
         ws_df = wb_df.get_sheet_by_name(programmer)
         print(Fore.WHITE + '[' + Fore.GREEN + "SUCCESS" + Fore.WHITE + ']')
