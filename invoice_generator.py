@@ -73,7 +73,7 @@ for programmer in programmers:
 
         file_name_date = today.isoformat().replace('-', '')
         file_name_programmer = programmer.replace(' ', '_')
-        if programmers[programmer] == 'P4'
+        if programmers[programmer] == 'P4':
             file_name = f'invoice-{file_name_programmer}-{file_name_date}_P4.xlsx'
         else:
             file_name = f'invoice-{file_name_programmer}-{file_name_date}.xlsx'
