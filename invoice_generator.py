@@ -122,12 +122,12 @@ for programmer in programmers:
         # This will work for sub-totals with no networks
         tota_imp = f'=SUM(J{invoice_start}:J{df_length + invoice_start - 1})'
         amount_due = f'=SUM(L{invoice_start}:L{df_length + invoice_start - 1})'
-        new_YTD_imp = f"={invoice_map['previous_YTD_imp']}+J{df_length + invoice_start - 2}"
+        new_YTD_imp = f"={invoice_map['previous_YTD_imp']}+J{df_length + invoice_start + 2}"
 
         ws_invoice[f"{invoice_map['YTD_imp']}"] = new_YTD_imp # Changing YTD impressions
-        ws_invoice[f"{invoice_map['month_imp']}{df_length + invoice_start - 2}"] = tota_imp # Changing total impressions of the month
-        ws_invoice[f"{invoice_map['total']}{df_length + invoice_start - 2}"] = amount_due # Changing total of the month
-        ws_invoice[f"{invoice_map['total']}{df_length + invoice_start - 13}"] = f"={invoice_map['total']}{df_length + invoice_start - 2}" # Changing amount due
+        ws_invoice[f"{invoice_map['month_imp']}{df_length + invoice_start + 2}"] = tota_imp # Changing total impressions of the month
+        ws_invoice[f"{invoice_map['total']}{df_length + invoice_start + 2}"] = amount_due # Changing total of the month
+        ws_invoice[f"{invoice_map['total']}{df_length + invoice_start + 13}"] = f"={invoice_map['total']}{df_length + invoice_start + 2}" # Changing amount due
 
         wb_invoice.save(filename=file_name)
         print(Fore.WHITE + '[' + Fore.GREEN + "SUCCESS" + Fore.WHITE + f"] {programmer} invoice created")
