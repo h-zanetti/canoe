@@ -20,9 +20,9 @@ df_map = {
 
 today = dt.date.today()
 programmers = {
-    'ABC Disnay': 'P4',
-    'AMC Networks': 'P4',
-    'CBS Corporation': 'P4',
+    # 'ABC Disnay': 'P4',
+    # 'AMC Networks': 'P4',
+    # 'CBS Corporation': 'P4',
     'CW': 'P4',
     'Epix': None,
     'Genius Brands': None,
@@ -59,8 +59,13 @@ for n in range(5, 25):
 wb_df = xl.load_workbook(f'{df_path}', data_only=True)
 for programmer in programmers:
     print(f"Creating invoice for {programmer}")
-    invoice_start = input("Column number where the data will start to be placed: ")
-    invoice_start = int(invoice_start)
+    # invoice_start = input("Column number where the data will start to be placed: ")
+    # invoice_start = int(invoice_start)
+    if programmer == 'CW':
+        invoice_start = 28
+    else:
+        invoice_start = 27
+
     df_length = input('Dataframe length: ')
     df_length = int(df_length)
 
@@ -70,7 +75,7 @@ for programmer in programmers:
 
     try:
         ws_df = wb_df.get_sheet_by_name(programmer)
-        print(Fore.WHITE + '[' + Fore.GREEN + "SUCCESS" + Fore.WHITE + ']')
+        print(Fore.WHITE + '[' + Fore.GREEN + "OK" + Fore.WHITE + '] Data successfully collected')
 
         old_invoice_path = input(f"Path of an old invoice for {programmer}: ")
 
@@ -101,15 +106,15 @@ for programmer in programmers:
 
         # Update data
         i = 1
-        for n in range(invoice_start, df_length + invoice_start):
+        for n in range(invoice_start, invoice_start + df_length):
             if i == ws_invoice_data[f'B{n}'].value:
                 for key in df_map:
-                        ws_invoice[f"{invoice_map[key]}{n}"] = ws_invoice[f"{df_map[key]}{i+3}"].value
+                        ws_invoice[f"{invoice_map[key]}{n}"] = ws_df[f"{df_map[key]}{i+3}"].value
             else:
                 ws_invoice.insert_rows(n)
                 ws_invoice[f'B{n}'] = f'=B{n - 1}+1'
                 for key in df_map:
-                        ws_invoice[f"{invoice_map[key]}{n}"] = ws_invoice[f"{df_map[key]}{i+3}"].value
+                        ws_invoice[f"{invoice_map[key]}{n}"] = ws_df[f"{df_map[key]}{i+3}"].value
             i += 1
 
         # Formatting corrections
