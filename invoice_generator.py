@@ -6,10 +6,10 @@ from colorama import Fore
 
 invoice_map = {
 # Header
-    'date': 'L1', 'invoice_num': 'L2', 'period_start': 'D18', 'period_end': 'D19', 'previous_YTD_imp': 'D22', 'YTD_imp': 'K17',
+    'date': 'L1', 'invoice_num': 'L2', 'period_start': 'D18', 'period_end': 'D19', 'previous_YTD_imp': 'D22',
 # Body
-    'campaign_id': 'C', 'campaign_name': 'D', 'network': 'E', 'start_date': 'F', 'end_date': 'G', 'campaign_goal': 'H', 'total_imp': 'I',
-    'month_imp': 'J', 'cpm':  'K', 'total': 'L',
+    'YTD_imp': 'J', 'campaign_id': 'C', 'campaign_name': 'D', 'network': 'E', 'start_date': 'F', 'end_date': 'G', 'total_imp': 'H',
+    'month_imp': 'I', 'cpm':  'J', 'total': 'K',
 }
 
 df_map = {
@@ -20,16 +20,17 @@ df_map = {
 
 today = dt.date.today()
 programmers = {
+    'NBC Universal': None
     # 'ABC Disnay': 'P4',
     # 'AMC Networks': 'P4',
     # 'CBS Corporation': 'P4',
-    'CW': 'P4',
-    'Epix': None,
-    'Genius Brands': None,
-    'Kabillion': None,
-    'Reelz': None,
-    'Starz Entertainment': None,
-    'TV One': None
+    # 'CW': 'P4',
+    # 'Epix': None,
+    # 'Genius Brands': None,
+    # 'Kabillion': None,
+    # 'Reelz': None,
+    # 'Starz Entertainment': None,
+    # 'TV One': None
 }
 
 time_period_start = input('Time period start (mm/dd/yyyy): ')
@@ -59,17 +60,9 @@ for n in range(5, 25):
 wb_df = xl.load_workbook(f'{df_path}', data_only=True)
 for programmer in programmers:
     print(f"Creating invoice for {programmer}")
-    # invoice_start = input("Column number where the data will start to be placed: ")
-    # invoice_start = int(invoice_start)
-    if programmer == 'CW':
-        invoice_start = 28
-    else:
-        invoice_start = 27
+    invoice_start = int(input("Column number where the data will start to be placed: "))
+    df_length = int(input('Dataframe length: '))
 
-    df_length = input('Dataframe length: ')
-    df_length = int(df_length)
-
-    # All invoices from CANOE_INVOICE_APR_2019 starts at the column 27, for some weird reason CW starts at 28
     invoice_map['data_starts'] = f"C{invoice_start}"
     invoice_map['data_ends'] = f"J{invoice_start}"
 
@@ -78,6 +71,7 @@ for programmer in programmers:
         print(Fore.WHITE + '[' + Fore.GREEN + "OK" + Fore.WHITE + '] Data successfully collected')
 
         old_invoice_path = input(f"Path of an old invoice for {programmer}: ")
+        marketplace = int(input('How many marketplace fields are in the invoice? '))
 
         file_name_date = today.isoformat().replace('-', '')
         file_name_programmer = programmer.replace(' ', '_')
@@ -99,48 +93,56 @@ for programmer in programmers:
 
         ws_invoice[invoice_map['invoice_num']] = invoice_numbers[programmer]
 
-        ws_invoice[invoice_map['previous_YTD_imp']] = ws_invoice_data[invoice_map['YTD_imp']].value # incomplete, make it change the rate card when needed
+        # incomplete, make it change the rate card when needed
+        for r in range(17, 26):
+            if ws_invoice.cell(row=r, column=10).value != None:
+                cpm = ws_invoice.cell(row=r, column=9).value
+                ws_invoice[invoice_map['previous_YTD_imp']] = ws_invoice_data.cell(row=r, column=10).value
 
         ws_invoice[invoice_map['period_start']] = time_period_start
         ws_invoice[invoice_map['period_end']] = time_period_end
 
         # Update data
         i = 1
+        networks = {}
         for n in range(invoice_start, invoice_start + df_length):
-            if i == ws_invoice_data[f'B{n}'].value:
+            if i == ws_invoice_data[f'B{n}'].value and ws_invoice_data[f"{invoice_map['campaign_id']}{n}"].value != 'NA':
                 for key in df_map:
-                        ws_invoice[f"{invoice_map[key]}{n}"] = ws_df[f"{df_map[key]}{i+3}"].value
+                    ws_invoice[f"{invoice_map[key]}{n}"] = ws_df[f"{df_map[key]}{i+3}"].value
             else:
                 ws_invoice.insert_rows(n)
                 ws_invoice[f'B{n}'] = f'=B{n - 1}+1'
                 for key in df_map:
-                        ws_invoice[f"{invoice_map[key]}{n}"] = ws_df[f"{df_map[key]}{i+3}"].value
+                    ws_invoice[f"{invoice_map[key]}{n}"] = ws_df[f"{df_map[key]}{i+3}"].value
+            
+            # Check for multiple networks
+            if ws_df[f"{df_map['network']}{i+3}"].value in networks:
+                networks[ws_df[f"{df_map['network']}{i+3}"].value] += ws_df[f"{df_map['month_imp']}{i+3}"].value
+            else:
+                networks[ws_df[f"{df_map['network']}{i+3}"].value] = ws_df[f"{df_map['month_imp']}{i+3}"].value
+            
             i += 1
 
-        # Formatting corrections
-        # Still have to change the column numbers - most of invoices have different positions due to multiple networks on the Sub-total field
-        # This will work for sub-totals with no networks
-        tota_imp = f'=SUM(J{invoice_start}:J{df_length + invoice_start - 1})'
-        amount_due = f'=SUM(L{invoice_start}:L{df_length + invoice_start - 1})'
-        new_YTD_imp = f"={invoice_map['previous_YTD_imp']}+J{df_length + invoice_start + 2}"
+    # Formatting corrections
+        max_row = ws_invoice.max_row
+        max_column = ws_invoice.max_column
+        for r in range(1, max_row+1):
+            if ws_invoice_data.cell(row=r, column=8).value in networks:
+                ws_invoice.cell(row=r, column=9).value = networks[ws_invoice.cell(row=r, column=8).value]
+                ws_invoice.cell(row=r, column=11).value = networks[ws_invoice.cell(row=r, column=8).value] * cpm
+            
+            if ws_invoice_data.cell(row=r, column=7).value == 'Total:':
+                ws_invoice.cell(row=r, column=9).value = f"=SUM({invoice_map['month_imp']}{invoice_start}:{invoice_map['month_imp']}{invoice_start + df_length - 1})"
+                ws_invoice.cell(row=r, column=11).value = f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length - 1})"
 
-        ws_invoice[f"{invoice_map['YTD_imp']}"] = new_YTD_imp # Changing YTD impressions
-        ws_invoice[f"{invoice_map['month_imp']}{df_length + invoice_start + 2}"] = tota_imp # Changing total impressions of the month
-        ws_invoice[f"{invoice_map['total']}{df_length + invoice_start + 2}"] = amount_due # Changing total of the month
-        ws_invoice[f"{invoice_map['total']}{df_length + invoice_start + 13}"] = f"={invoice_map['total']}{df_length + invoice_start + 2}" # Changing amount due
+            if ws_invoice_data.cell(row=r, column=10).value in networks:
+                ws_invoice.cell(row=r, column=11).value = networks[ws_invoice.cell(row=r, column=10).value] * cpm
+            
+            if ws_invoice_data.cell(row=r, column=10).value == 'Amount Due:':
+                ws_invoice.cell(row=r, column=11).value == f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length - 1})"
 
-        wb_invoice.save(filename=file_name)
+        wb_invoice.save(f"new_invoices/{file_name}")
         print(Fore.WHITE + '[' + Fore.GREEN + "SUCCESS" + Fore.WHITE + f"] {programmer} invoice created")
 
     except:
         print('[' + Fore.RED + "ERROR" + Fore.WHITE + f'] Fail to generate {programmer} invoice')
-
-
-
-
-
-
-
-
-
-
