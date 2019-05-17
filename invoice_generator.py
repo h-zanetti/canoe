@@ -39,7 +39,17 @@ cpms = {
     range(8 * 10**8, 2 * 10**9): 0.71,
     range(2 * 10**9, 3 * 10**9): 0.61,
     range(3 * 10**9, 4 * 10**9): 0.58,
-    range(4 * 10**9, 5 * 10**9): 0.55,
+    range(4 * 10**9, 5 * 10**9): 0.55
+}
+cpm_max = {
+    1.28: 199999999,
+    1.13: 399999999,
+    0.99: 599999999,
+    0.85: 799999999,
+    0.71: 1999999999,
+    0.61: 2999999999,
+    0.58: 3999999999,
+    0.55: 4999999999
 }
 
 
@@ -163,6 +173,13 @@ for programmer in programmers:
         if cpm_change == True:
             for cpm in cpms:
                 if imp_counter in cpm and cpms[cpm] != current_cpm:
+                    split = imp_counter - cpm_max[cpms[cpm]]
+                    ws_invoice[f"{invoice_map['month_imp']}{r}"].value -= split
+                    ws_invoice[f"{invoice_map['cpm']}{r}"].value = current_cpm
+                    
+                    ws_invoice.insert_rows(r)
+                    ws_invoice[f"{invoice_map['network']}{r}"].value = ws_invoice[f"{invoice_map['network']}{r-1}"].value
+                    ws_invoice[f"{invoice_map['month_imp']}{r}"].value = split
                     current_cpm = cpms[cpm]
                     ws_invoice[f"{invoice_map['cpm']}{r}"].value = current_cpm
                 else:
@@ -194,7 +211,7 @@ for programmer in programmers:
             ws_invoice.cell(row=r, column=11).value = f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length + marketplace - 1})"
         # Update amount due
         if ws_invoice.cell(row=r, column=10).value == 'Amount Due:':
-            ws_invoice.cell(row=r, column=11).value = f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length + marketplace - 1})"    
+            ws_invoice.cell(row=r, column=11).value = f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length + marketplace - 1})"
             amount_due_row = r
             for i in range(17, 26):
                 if ws_invoice.cell(row=i, column=10).value != None:
