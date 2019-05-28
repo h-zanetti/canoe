@@ -18,8 +18,11 @@ df_map = {
     'total_imp': 'F', 'month_imp': 'G'
 }
 programmers = {
-    'Viacom': 'P4',
-    # 'NBC Universal': None,
+    # 'A&E Networks': None,
+    'Fox Cable Networks': 'P4',
+    # 'Music Choice': 'P4',
+    'NBC Universal': None,
+    # 'Viacom': 'P4',
     # 'ABC Disnay': 'P4',
     # 'AMC Networks': 'P4',
     # 'CBS Corporation': 'P4',
@@ -101,17 +104,16 @@ print(Fore.WHITE + '[' + Fore.GREEN + "OK" + Fore.WHITE + '] Data successfully c
 
 for programmer in programmers:
     print(f"Creating invoice for {programmer}...")
-    invoice_start = int(input("Column number where the data will start to be placed: "))
+    invoice_start = int(input("Start point: "))
     df_length = int(input('Dataframe length: '))
 
     invoice_map['data_starts'] = f"C{invoice_start}"
     invoice_map['data_ends'] = f"J{invoice_start}"
 
-    # try:
     ws_df = wb_df.get_sheet_by_name(programmer)
 
-    old_invoice_path = input(f"Path of an old invoice for {programmer}: ")
-    marketplace = int(input('How many marketplace fields are in the invoice? '))
+    old_invoice_path = input(f"Old {programmer} invoice path: ")
+    marketplace = int(input('Marketplace: '))
 
     file_name_date = today.isoformat().replace('-', '')
     file_name_programmer = programmer.replace(' ', '_')
@@ -122,10 +124,10 @@ for programmer in programmers:
 
     print(f'Creating file {file_name}')
 
-    wb_invoice = xl.load_workbook(old_invoice_path)
+    wb_invoice = xl.load_workbook(f"../Canoe/INVOICES_2019/03/{old_invoice_path}.xlsx")
     ws_invoice = wb_invoice.get_sheet_by_name('Invoice')
 
-    wb_invoice_data = xl.load_workbook(old_invoice_path, data_only=True)
+    wb_invoice_data = xl.load_workbook(f"../Canoe/INVOICES_2019/03/{old_invoice_path}.xlsx", data_only=True)
     ws_invoice_data = wb_invoice_data.get_sheet_by_name('Invoice')
 
     # Update header
@@ -150,7 +152,7 @@ for programmer in programmers:
 
     # Update data
     i = 1
-    networks = {}
+    networks = []
     imp_counter = ws_invoice[f"{invoice_map['previous_YTD_imp']}"].value
     for r in range(invoice_start, invoice_start + df_length):
         # Line number
@@ -170,16 +172,9 @@ for programmer in programmers:
         
         # Rate card
         imp_counter += ws_invoice[f"{invoice_map['month_imp']}{r}"].value
-        if cpm_change == True:
+        if cpm_change == True and imp_counter > cpm_max[current_cpm]:
             for cpm in cpms:
                 if imp_counter in cpm and cpms[cpm] != current_cpm:
-                    split = imp_counter - cpm_max[cpms[cpm]]
-                    ws_invoice[f"{invoice_map['month_imp']}{r}"].value -= split
-                    ws_invoice[f"{invoice_map['cpm']}{r}"].value = current_cpm
-                    
-                    ws_invoice.insert_rows(r)
-                    ws_invoice[f"{invoice_map['network']}{r}"].value = ws_invoice[f"{invoice_map['network']}{r-1}"].value
-                    ws_invoice[f"{invoice_map['month_imp']}{r}"].value = split
                     current_cpm = cpms[cpm]
                     ws_invoice[f"{invoice_map['cpm']}{r}"].value = current_cpm
                 else:
@@ -191,34 +186,31 @@ for programmer in programmers:
         ws_invoice.cell(row=r, column=11).value = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
         
         # Impressions per networks
-        if ws_df[f"{df_map['network']}{i+3}"].value in networks:
-            networks[ws_df[f"{df_map['network']}{i+3}"].value] += ws_df[f"{df_map['month_imp']}{i+3}"].value
-        else:
-            networks[ws_df[f"{df_map['network']}{i+3}"].value] = ws_df[f"{df_map['month_imp']}{i+3}"].value
+        if ws_df[f"{df_map['network']}{i+3}"].value not in networks:
+            networks.append(ws_df[f"{df_map['network']}{i+3}"].value)
+        
         
         i += 1
 
     # Formatting corrections
-    max_row = ws_invoice.max_row
-    for r in range(invoice_start + df_length, invoice_start + df_length + len(networks) + marketplace + 25):
+    for r in range(invoice_start + df_length + marketplace, invoice_start + df_length + marketplace + len(networks) + 25):
         # Update sub-totals
         if ws_invoice.cell(row=r, column=8).value in networks:
-            ws_invoice.cell(row=r, column=9).value = networks[ws_invoice.cell(row=r, column=8).value]
-            ws_invoice.cell(row=r, column=11).value = networks[ws_invoice.cell(row=r, column=8).value] * (current_cpm / 1000)
+            ws_invoice.cell(row=r, column=9).value = f"=SUMIF({invoice_map['network']}{invoice_start}:{invoice_map['network']}{invoice_start + df_length + marketplace - 1},H{r},{invoice_map['month_imp']}{invoice_start}:{invoice_map['month_imp']}{invoice_start + df_length + marketplace - 1})"
+            ws_invoice.cell(row=r, column=11).value = f"=SUMIF({invoice_map['network']}{invoice_start}:{invoice_map['network']}{invoice_start + df_length + marketplace - 1},H{r},{invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length + marketplace - 1})"
         # Update total
         if ws_invoice.cell(row=r, column=7).value == 'Total:':
             ws_invoice.cell(row=r, column=9).value = f"=SUM({invoice_map['month_imp']}{invoice_start}:{invoice_map['month_imp']}{invoice_start + df_length + marketplace - 1})"
             ws_invoice.cell(row=r, column=11).value = f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length + marketplace - 1})"
+            total_row = r
         # Update amount due
         if ws_invoice.cell(row=r, column=10).value == 'Amount Due:':
             ws_invoice.cell(row=r, column=11).value = f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length + marketplace - 1})"
-            amount_due_row = r
+            # Update YTD impressions
             for i in range(17, 26):
-                if ws_invoice.cell(row=i, column=10).value != None:
-                    ws_invoice.cell(row=i, column=10).value = f"={invoice_map['previous_YTD_imp']}+{ws_invoice.cell(row=amount_due_row, column=11).value}"
-
+                if ws_invoice.cell(row=i, column=9).value == current_cpm:
+                    ws_invoice.cell(row=i, column=10).value = f"=SUM({invoice_map['total']}{invoice_start}:{invoice_map['total']}{invoice_start + df_length + marketplace - 1}) + {invoice_map['previous_YTD_imp']}"
+    
     wb_invoice.save(f"new_invoices/{file_name}")
     print(Fore.WHITE + '[' + Fore.GREEN + "SUCCESS" + Fore.WHITE + f"] {programmer} invoice created")
 
-    # except:
-    #     print('[' + Fore.RED + "ERROR" + Fore.WHITE + f'] Fail to generate {programmer} invoice')
