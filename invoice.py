@@ -2,9 +2,18 @@ import time
 timer_s = time.time()
 
 import openpyxl as xl
+from openpyxl.styles import Font, PatternFill
 from config import *
 from colorama import Fore
 
+# Styling Classes
+font = Font(name='Calibri', size=12)
+fill = PatternFill()
+# Changing Font
+def invoice_font(row):
+    for col in range(2, 12):
+        cell = invoice.cell(row=row, column=col)
+        cell.font = Font(name='Calibri', size=12)
 
 df_path = '../Canoe/INVOICES_2019/04/DATA/MRM_INVOICE_APR.xlsx'
 df_wb = xl.load_workbook(df_path, data_only=True)
@@ -42,7 +51,7 @@ for programmer in programmers:
         invoice[invoice_map['period_end']] = end_date
         invoice[invoice_map['previous_YTD_imp']] = programmers[programmer]['total_imp']
 
-        # Setting Rate Card
+        # Setting Rate Card Variables
         max_imp = get_max_imp(programmers[programmer]['total_imp'])
         next_cpm = get_next_cpm(programmers[programmer]['rate_card']['value'])
 
@@ -54,10 +63,17 @@ for programmer in programmers:
         while r < last_r:
             invoice.insert_rows(r)
             # Invoice Line
-            invoice[f"B{r}"] = i
+            cell = invoice[f"B{r}"]
+            cell.value = i
+            cell.number_format = '000'
             # Data Frame
             for key in df_map:
-                invoice[f"{invoice_map[key]}{r}"] = programmer_df[f"{df_map[key]}{i+3}"].value
+                if key == 'start_date' or key == 'end_date':
+                    cell = invoice[f"{invoice_map[key]}{r}"]
+                    cell.value = programmer_df[f"{df_map[key]}{i+3}"].value
+                    cell.number_format = 'DD/MM/YYYY'
+                else:
+                    invoice[f"{invoice_map[key]}{r}"] = programmer_df[f"{df_map[key]}{i+3}"].value
             # Rate Card & Total
             imp_counter += invoice[f"{invoice_map['month_imp']}{r}"].value
             if imp_counter >= max_imp:
@@ -65,6 +81,7 @@ for programmer in programmers:
                 invoice[f"{invoice_map['month_imp']}{r}"] = programmer_df[f"{df_map['month_imp']}{i+3}"].value - split_imp
                 invoice[f"{invoice_map['cpm']}{r}"] = programmers[programmer]['rate_card']['value']
                 invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
+                invoice_font(r)
 
                 r+=1
                 invoice.insert_rows(r)
@@ -81,17 +98,21 @@ for programmer in programmers:
                 invoice[f"{invoice_map['cpm']}{r}"] = programmers[programmer]['rate_card']['value']
                 invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
 
+            invoice_font(r)
             r+=1
             i+=1
 
         # Formatting Corrections
-        for r in range(last_r + 2, last_r + 2 + len(programmers[programmer]['networks']) +25):
+        invoice_max = invoice.max_row
+        for r in range(last_r + 2, invoice_max):
             # Update sub-totals
             if invoice.cell(row=r, column=8).value in programmers[programmer]['networks']:
                 invoice.cell(row=r, column=9).value = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + df_length},H{r},{invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + df_length})"
                 invoice.cell(row=r, column=11).value = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + df_length},H{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + df_length})"
+            if invoice.cell(row=r, column=10).value in programmers[programmer]['networks']:
+                invoice.cell(row=r, column=11).value = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + df_length},J{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + df_length})"
             # Update total
-            if invoice.cell(row=r, column=7).value == 'Total:':
+            if invoice.cell(row=r, column=7).value == 'Total:' or invoice.cell(row=r, column=7).value == "TOTAL:":
                 invoice.cell(row=r, column=9).value = f"=SUM({invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + df_length})"
                 billed_imp = invoice.cell(row=r, column=9).value
                 invoice.cell(row=r, column=11).value = f"=SUM({invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + df_length})"
@@ -104,6 +125,13 @@ for programmer in programmers:
                 for i in range(17, 26):
                     if invoice.cell(row=i, column=9).value == programmers[programmer]['rate_card']['value']:
                         invoice.cell(row=i, column=10).value = f"=SUM({invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + df_length}) + {invoice_map['previous_YTD_imp']}"
+                        for col in range(7, 12):
+                            cell = invoice.cell(row=i, column=col)
+                            cell.font = Font(bold=True)
+                            cell.fill = PatternFill('solid', fgColor='FFFF99')
+                            
+        
+        # Handling Exceptions
         if programmer == 'FOX':
             invoice[f"{invoice_map['month_imp']}28"] = billed_imp
             invoice[f"{invoice_map['total']}28"] = amount_due
@@ -113,13 +141,15 @@ for programmer in programmers:
                 invoice.cell(row=r, column=9).value = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + df_length},E{r},{invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + df_length})"
                 invoice.cell(row=r, column=11).value = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + df_length},E{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + df_length})"
 
-        invoice_timer_e = time.time()
         programmer_wb.save(f'new_invoices/invoice-{programmer}-{today_filename}.xlsx')
+        invoice_timer_e = time.time()
+
         print(f"[{Fore.GREEN}SUCCESS{Fore.WHITE}] {programmers[programmer]['title']} invoice successfully generated in {round(invoice_timer_e - invoice_timer_s,3)}s")
         invoices += 1
 
-    except:
+    except Exception as e:
         print(f"[{Fore.RED}ERROR{Fore.WHITE}] Fail to generate {programmers[programmer]['title']} invoice ...")
+        print(e)
 
 timer_e = time.time()
 print(f'{invoices} invoices generated in {round(timer_e - timer_s, 3)}s')

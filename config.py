@@ -21,14 +21,14 @@ df_map = {
 programmers = {
     'A&E': {
         'title': 'A&E Networks',
-        'total_imp': 353_923_524,
+        'total_imp': 271_013_543,#353_923_524,
         'revenue': 429_934,
         'rate_card': {
             'value': 1.13,
             'P4': True
         },
         'networks': ['A&E', 'Lifetime', 'History', 'LMN', 'FYI', 'Viceland'],
-        'invoice_num': None,
+        'invoice_num': 8471,
         # invoice map
         'invoice_path': 'plain_invoices/A&E.xlsx',
         'start_point': 28,
@@ -133,7 +133,7 @@ programmers = {
             'P4': True
         },
         'networks': ['FOX Broadcast', 'FX', 'FXM', 'FXX', 'National Geographic Channel', 'Nat Geo WILD'],
-        'invoice_num': None,
+        'invoice_num': 8479,
         # invoice map
         'invoice_path': 'plain_invoices/FOX.xlsx',
         'start_point': 32,
@@ -186,14 +186,14 @@ programmers = {
     },
     'MC': {
         'title': 'Music Choice',
-        'total_imp': 23_630_905,
+        'total_imp': 17_589_771,#23_630_905,
         'revenue': 30_248,
         'rate_card': {
             'value': 1.28,
             'P4': True
         },
         'networks': ['Music Choice'],
-        'invoice_num': None,
+        'invoice_num': 8483,
         # invoice map
         'invoice_path': 'plain_invoices/MC.xlsx',
         'start_point': 28,
@@ -201,14 +201,14 @@ programmers = {
     },
     'NBC': {
         'title': 'NBC Universal',
-        'total_imp': 1_801_182_698,
+        'total_imp': 1_282_654_718,#1_801_182_698,
         'revenue': 1_560_840,
         'rate_card': {
             'value': 0.71,
             'P4': True
         },
         'networks': ['Bravo', 'E!', 'NBC Broadcast', 'Oxygen', 'Universal Kids', 'SyFy', 'Telemundo', 'USA', 'NBC Sports', 'NBC News', 'NBC Universo', 'MSNBC', 'CNBC', 'Golf Channel'],
-        'invoice_num': None,
+        'invoice_num': 8484,
         # invoice map
         'invoice_path': 'plain_invoices/NBC.xlsx',
         'start_point': 28,
@@ -306,14 +306,14 @@ programmers = {
     },
     'VIACOM': {
         'title': 'Viacom',
-        'total_imp': 966_052_759,
+        'total_imp': 716_752_172,#966_052_759,
         'revenue': 977_897,
         'rate_card': {
             'value': 0.71,
             'P4': True
         },
         'networks': ['Nick Jr (Noggin)', 'Nick Mom', 'Nickelodeon', 'CMT', 'TeenNick', 'BET', 'BET Her', 'MTV', 'MTV2', 'TV Land', 'VH1', 'VH1 Classic', 'Comedy Central', 'Paramount', 'Logo'],
-        'invoice_num': None,
+        'invoice_num': 8491,
         # invoice map
         'invoice_path': 'plain_invoices/VIACOM.xlsx',
         'start_point': 28,
