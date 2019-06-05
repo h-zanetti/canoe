@@ -8,15 +8,16 @@ end_date = dt.date(today.year, today.month-1, calendar.monthrange(today.year, to
 
 invoice_map = {
     # Header
-    'date': 'K1', 'invoice_num': 'K2', 'period_start': 'D18', 'period_end': 'D19', 'programmer': 'D20', 'networks': 'D21', 'previous_YTD_imp': 'D22', 'rate_cards': 'I',
+    'date': 'J1', 'invoice_num': 'J2', 'period_start': 'D18', 'period_end': 'D19', 'programmer': 'D20', 'networks': 'D21', 'previous_YTD_imp': 'D22', 'rate_cards': 'I',
     # Body
-    'YTD_imp': 'J', 'campaign_id': 'C', 'campaign_name': 'D', 'network': 'E', 'start_date': 'F', 'end_date': 'G', 'total_imp': 'H',
-    'month_imp': 'I', 'cpm':  'J', 'total': 'K',
+    'YTD_imp': 'J', 'campaign_id': 'C', 'campaign_name': 'D', 'network': 'E', 'start_date': 'F', 'end_date': 'G', 
+    'month_imp': 'H', 'cpm':  'I', 'total': 'J',
+    # Foot
+    'sub_networks': 'G', 'foot_networks': 'I', 'foot_total': 'F', 'amount_due': 'I',
 }
 df_map = {
     'campaign_id': 'A', 'campaign_name': 'B', 'network': 'C',
-    'start_date': 'D', 'end_date': 'E',
-    'total_imp': 'F', 'month_imp': 'G'
+    'start_date': 'D', 'end_date': 'E', 'month_imp': 'F'
 }
 
 # Programmers Info
