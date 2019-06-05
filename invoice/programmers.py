@@ -1,22 +1,5 @@
-import datetime as dt
-import calendar
-
-today = dt.date.today()
-start_date = dt.date(today.year, today.month-1, 1)
-end_date = dt.date(today.year, today.month-1, calendar.monthrange(today.year, today.month-1)[1])
-
-invoice_map = {
-    # Header
-    'date': 'K1', 'invoice_num': 'K2', 'period_start': 'D18', 'period_end': 'D19', 'previous_YTD_imp': 'D22',
-    # Body
-    'YTD_imp': 'J', 'campaign_id': 'C', 'campaign_name': 'D', 'network': 'E', 'start_date': 'F', 'end_date': 'G', 'total_imp': 'H',
-    'month_imp': 'I', 'cpm':  'J', 'total': 'K',
-}
-df_map = {
-    'campaign_id': 'A', 'campaign_name': 'B', 'network': 'C',
-    'start_date': 'D', 'end_date': 'E',
-    'total_imp': 'F', 'month_imp': 'G'
-}
+import pickle
+from models import Programmer
 
 programmers = {
     'A&E': {
@@ -321,59 +304,36 @@ programmers = {
     }
 }
 
-rate_card = {
-    199999999: {
-        'value_1': 0.95,
-        'value_2': 1.05,
-        'P4_1': 1.28,
-        'P4_2':1.42
-    },
-    399999999: {
-        'value_1': 0.84,
-        'value_2': 1.00,
-        'P4_1': 1.13,
-        'P4_2': 1.35
-    },
-    599999999: {
-        'value_1': 0.74,
-        'value_2': 0.95,
-        'P4_1': 0.99,
-        'P4_2': 1.28
-    },
-    799999999: {
-        'value_1': 0.63,
-        'value_2': 0.89,
-        'P4_1': 0.85,
-        'P4_2': 1.21
-    }, 
-    1999999999: {
-        'value_1': 0.53,
-        'value_2': 0.84,
-        'P4_1': 0.71,
-        'P4_2': 1.13
-    },
-    2999999999: {
-        'value_1': 0.45,
-        'value_2': 0.79,
-        'P4_1': 0.61,
-        'P4_2': 1.06
-    },
-    3999999999: {
-        'value_1': 0.43,
-        'value_2': 0.76,
-        'P4_1': 0.58,
-        'P4_2': 1.03
-    },
-    4999999999: {
-        'value_1': 0.41,
-        'value_2': 0.73,
-        'P4_1': 0.55,
-        'P4_2': 0.99
-    },
-    99999999999: {
-        'value_1': 0.41,
-        'value_2': 0.73,
-        'P4_1': 0.50,
-        'P4_2': 0.94
-    }
-}
+i=1
+for p in programmers:
+    new_net = ''
+    for n in programmers[p]['networks']:
+        new_net += f'{n}, '
+    new_net = new_net[:-2]
+
+    if programmers[p]['rate_card']['P4'] == True:
+        P4 = 1
+    else:
+        P4 = 0
+
+    if programmers[p]['invoice_num'] == None:
+        programmers[p]['invoice_num'] = 0
+
+    programmer = Programmer(
+        i,
+        p,
+        programmers[p]['title'],
+        programmers[p]['total_imp'],
+        programmers[p]['revenue'],
+        programmers[p]['rate_card']['value'],
+        P4,
+        new_net,
+        programmers[p]['invoice_num'],
+        programmers[p]['invoice_path'],
+        programmers[p]['start_point']
+    )
+    
+    prog_file = open(f'programmers/{p}.p', 'wb')
+    pickle.dump(programmer, prog_file)
+
+    i+=1
