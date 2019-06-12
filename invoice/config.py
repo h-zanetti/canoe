@@ -1,11 +1,59 @@
 import datetime as dt
 import calendar
 from oracle import *
+from openpyxl.styles import Font, PatternFill
 
+# Styling Classes
+font = Font(name='Calibri', size=12)
+fill = PatternFill()
+def currency_format(cell):
+    cell.number_format = '"$"#,##0.00'
+
+def invoice_font(row, ws):
+    for col in range(2, 12):
+        cell = ws.cell(row=row, column=col)
+        cell.font = Font(name='Calibri', size=12)
+        # Currency Format
+        if col == 10 or col == 11:
+            currency_format(cell)
+
+# Invoice Information
+def get_max_imp(imp):
+    for rate in rate_card:
+        if imp <= rate:
+            return rate
+
+def get_next_cpm(cpm, invoice):
+    for r in range(17, 26):
+        if round(invoice[f"{invoice_map['rate_cards']}{r}"].value, 2) == cpm:
+            return round(invoice[f"{invoice_map['rate_cards']}{r+1}"].value, 2)
+
+def update(id, total_imp, rate_card, invoice_num):
+        dic = {
+        'total_imp': total_imp,
+        'rate_card': rate_card,
+        'invoice_num': invoice_num,
+        }
+
+        update = f'UPDATE invoice_generator_info SET '
+        for key in dic:
+            update += f'{key} = {dic[key]}, '
+        update = update[:-2]
+        update += f" WHERE id = '{id}'"
+       
+        return update
+
+backfill = {
+    'programmers': ['TVONE', 'REELZ', 'KIDGENIUS', 'CROWN', 'SONY', 'KABILLION'],
+    'key': ['CBFM', 'Backfill'],
+    }
+
+# Date
 today = dt.date.today()
 start_date = dt.date(today.year, today.month-1, 1)
 end_date = dt.date(today.year, today.month-1, calendar.monthrange(today.year, today.month-1)[1])
 
+# Excel Mapping
 invoice_map = {
     # Header
     'date': 'J1', 'invoice_num': 'J2', 'period_start': 'D18', 'period_end': 'D19', 'programmer': 'D20', 'networks': 'D21', 'previous_YTD_imp': 'D22', 'rate_cards': 'I',
@@ -24,10 +72,40 @@ df_map = {
 query = '''
 SELECT id, abbreviation, title, total_imp, rate_card, networks, invoice_num, start_point, bill_to, attention, address, state, contact
 FROM invoice_generator_info
+WHERE id=18
 ORDER BY TITLE
 '''
 cur = cursor.execute(query)
 programmers = cur.fetchall()
+db_map = {
+    'id': 0,
+    'abbreviation': 1,
+    'title': 2,
+    'total_imp': 3,
+    'rate_card': 4,
+    'networks': 5,
+    'invoice_num': 6,
+    'start_point': 7,
+    'bill_to': 8,
+    'attention': 9,
+    'address': 10,
+    'state': 11,
+    'contact': 12
+}
+
+turner_top = [
+    f"truTV {start_date.strftime('%b %y')} Campaigns",
+    f"Adult Swim {start_date.strftime('%b %y')} Campaigns",
+    f"TBS {start_date.strftime('%b %y')} Campaigns",
+    f"Boomerang {start_date.strftime('%b %y')} Campaigns",
+    f"Cartoon Network {start_date.strftime('%b %y')} Campaigns",
+    f"Cartoon Network ESP {start_date.strftime('%b %y')} Campaigns",
+    f"CNN {start_date.strftime('%b %y')} Campaigns",
+    f"HLN {start_date.strftime('%b %y')} Campaigns",
+    f"TNT {start_date.strftime('%b %y')} Campaigns",
+    f"March Madness {start_date.strftime('%b %y')} Campaigns"
+]
+
 # Total Impressions
 query = f'''
 SELECT os.PROGRAMMER, sum(os.IMPRESSIONS) FROM OPERATIONS.OPS_STAT_ALL os

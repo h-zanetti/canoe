@@ -2,17 +2,8 @@ import time
 timer_s = time.time()
 
 import openpyxl as xl
-from openpyxl.styles import Font, PatternFill
 from colorama import Fore
 from config import *
-
-# Styling Classes
-font = Font(name='Calibri', size=12)
-fill = PatternFill()
-def invoice_font(row):
-    for col in range(2, 12):
-        cell = invoice.cell(row=row, column=col)
-        cell.font = Font(name='Calibri', size=12)
 
 # Dataframe
 df_path = f"data/INVOICE_{start_date.strftime('%b').upper()}.xlsx"
@@ -22,47 +13,7 @@ df_wb = xl.load_workbook(df_path, data_only=True)
 today_invoice = today.strftime('%m/%d/%Y')
 filename_date = start_date.strftime('%b_%Y').upper()
 
-def get_max_imp(imp):
-    for rate in rate_card:
-        if imp <= rate:
-            return rate
-
-def get_next_cpm(cpm, invoice):
-    for r in range(17, 26):
-        if round(invoice[f"{invoice_map['rate_cards']}{r}"].value, 2) == cpm:
-            return round(invoice[f"{invoice_map['rate_cards']}{r+1}"].value, 2)
-
-def update(abr, total_imp, rate_card, invoice_num):
-        dic = {
-        'total_imp': total_imp,
-        'rate_card': rate_card,
-        'invoice_num': invoice_num,
-        }
-
-        update = f'UPDATE invoice_generator_info SET '
-        for key in dic:
-            update += f'{key} = {dic[key]}, '
-        update = update[:-2]
-        update += f" WHERE abbreviation = '{abr}'"
-       
-        return update
-
 invoices = 0
-db_map = {
-    'id': 0,
-    'abbreviation': 1,
-    'title': 2,
-    'total_imp': 3,
-    'rate_card': 4,
-    'networks': 5,
-    'invoice_num': 6,
-    'start_point': 7,
-    'bill_to': 8,
-    'attention': 9,
-    'address': 10,
-    'state': 11,
-    'contact': 12
-}
 programmer_wb = xl.load_workbook('plain_invoices/PLAIN_INVOICES.xlsx')
 for programmer in programmers:
     invoice_timer_s = time.time()
@@ -85,7 +36,10 @@ for programmer in programmers:
     query = "SELECT MAX(invoice_num) FROM invoice_generator_info"
     cursor.execute(query)
     invoice_num = cursor.fetchone()
-    invoice_num = invoice_num[0] + 1
+    if invoices == 1:
+        invoice_num = invoice_num[0] + 3
+    else:
+        invoice_num = invoice_num[0] + 1
     invoice[invoice_map['invoice_num']] = invoice_num
 
     invoice[invoice_map['period_start']] = start_date
@@ -112,22 +66,27 @@ for programmer in programmers:
         cell = invoice[f"B{r}"]
         cell.value = i
         cell.number_format = '000'
+        
         # Data Frame
         for key in df_map:
+            # Date Formatting
             if key == 'start_date' or key == 'end_date':
                 cell = invoice[f"{invoice_map[key]}{r}"]
                 cell.value = programmer_df[f"{df_map[key]}{i+3}"].value
                 cell.number_format = 'MM/DD/YYYY'
             else:
                 invoice[f"{invoice_map[key]}{r}"] = programmer_df[f"{df_map[key]}{i+3}"].value
+        
         # Rate Card & Total
-        imp_counter += invoice[f"{invoice_map['month_imp']}{r}"].value
+        if invoice[f"{invoice_map['network']}{r}"].value != 'Backfill Campaigns':
+            imp_counter += invoice[f"{invoice_map['month_imp']}{r}"].value
+
         if imp_counter >= max_imp:
             split_imp = imp_counter - max_imp
             invoice[f"{invoice_map['month_imp']}{r}"] = programmer_df[f"{df_map['month_imp']}{i+3}"].value - split_imp
             invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
             invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
-            invoice_font(r)
+            invoice_font(r, invoice)
 
             r+=1
             invoice.insert_rows(r)
@@ -143,7 +102,7 @@ for programmer in programmers:
             invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
             invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
 
-        invoice_font(r)
+        invoice_font(r, invoice)
         r+=1
         i+=1
 
@@ -154,15 +113,20 @@ for programmer in programmers:
         if invoice[f"{invoice_map['sub_networks']}{r}"].value in networks_list:
             invoice[f"{invoice_map['month_imp']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},{invoice_map['sub_networks']}{r},{invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i})"
             invoice[f"{invoice_map['total']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},{invoice_map['sub_networks']}{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
-        
+            currency_format(invoice[f"{invoice_map['total']}{r}"])
+
         if invoice[f"{invoice_map['foot_networks']}{r}"].value in networks_list:
             invoice[f"{invoice_map['total']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},{invoice_map['foot_networks']}{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
+            currency_format(invoice[f"{invoice_map['total']}{r}"])
+
         # Update total
         if invoice[f"{invoice_map['foot_total']}{r}"].value == 'Total:':
             invoice[f"{invoice_map['month_imp']}{r}"] = f"=SUM({invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i})"
             local_imp = invoice[f"{invoice_map['month_imp']}{r}"].value
 
             invoice[f"{invoice_map['total']}{r}"] = f"=SUM({invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
+            currency_format(invoice[f"{invoice_map['total']}{r}"])
+            
         # Update amount due
         if invoice[f"{invoice_map['amount_due']}{r}"].value == 'Amount Due:':
             invoice[f"{invoice_map['total']}{r}"] = f"=SUM({invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
@@ -181,11 +145,16 @@ for programmer in programmers:
     if programmer[db_map['abbreviation']] == 'FOX':
         invoice[f"{invoice_map['month_imp']}28"] = local_imp
         invoice[f"{invoice_map['total']}28"] = amount_due
+        invoice[f"{invoice_map['campaign_name']}28"] = f"{start_date.strftime('%b %Y').upper()} Campaigns"
 
     elif programmer[db_map['abbreviation']] == 'TURNER':
-        for r in range(28, 40):
-            invoice[f"{invoice_map['month_imp']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},E{r},{invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i})"
-            invoice[f"{invoice_map['total']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},E{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
+        k=0
+        for r in range(28, 38):
+            invoice[f"{invoice_map['campaign_name']}{r}"] = turner_top[k]
+            invoice[f"I{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},{invoice_map['network']}{r},{invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i})"
+            invoice[f"{invoice_map['total']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},{invoice_map['network']}{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
+            k+=1
+        invoice[f"{invoice_map['total']}39"] = amount_due
 
     # Checking and Updating DB
     if imp_counter == impressions[programmer[db_map['id']]-1][1]:
@@ -193,9 +162,12 @@ for programmer in programmers:
     else:
         print(f"[{Fore.YELLOW}ALERT{Fore.WHITE}] Total impressions for {programmer[db_map['abbreviation']]} doesn't match")
     
+    # Print Area
+    invoice.print_area = f'A1:K{invoice.max_row}'
+
     programmer_wb.save(f"new_invoices/INVOICES_{filename_date}.xlsx")
 
-    # query = update(programmer[db_map['abbreviation']], imp_counter, current_cpm, invoice_num)
+    # query = update(programmer[db_map['id']], imp_counter, current_cpm, invoice_num)
     # cursor.execute(query)
     # db.commit()
 
