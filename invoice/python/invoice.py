@@ -6,7 +6,7 @@ from colorama import Fore
 from config import *
 
 # Dataframe
-df_path = f"data/INVOICE_{start_date.strftime('%b').upper()}.xlsx"
+df_path = f"../data/INVOICE_{start_date.strftime('%b').upper()}.xlsx"
 df_wb = xl.load_workbook(df_path, data_only=True)
 
 # Date Formatting
@@ -14,7 +14,7 @@ today_invoice = today.strftime('%m/%d/%Y')
 filename_date = start_date.strftime('%b_%Y').upper()
 
 invoices = 0
-programmer_wb = xl.load_workbook('plain_invoices/PLAIN_INVOICES.xlsx')
+programmer_wb = xl.load_workbook('../plain_invoices/PLAIN_INVOICES.xlsx')
 for programmer in programmers:
     invoice_timer_s = time.time()
     
@@ -32,15 +32,20 @@ for programmer in programmers:
 
     # Updatting Header
     invoice[invoice_map['date']] = today_invoice
+    basic_font(invoice[invoice_map['date']])
+    alignment(invoice[invoice_map['date']], 'right')
 
     query = "SELECT MAX(invoice_num) FROM invoice_generator_info"
     cursor.execute(query)
     invoice_num = cursor.fetchone()
-    if invoices == 1:
+    if invoices == 0:
         invoice_num = invoice_num[0] + 3
     else:
         invoice_num = invoice_num[0] + 1
+    # invoice_num = invoice_num[0] + 1
     invoice[invoice_map['invoice_num']] = invoice_num
+    basic_font(invoice[invoice_map['invoice_num']])
+    alignment(invoice[invoice_map['invoice_num']], 'right')
 
     invoice[invoice_map['period_start']] = start_date
     invoice[invoice_map['period_end']] = end_date
@@ -78,6 +83,10 @@ for programmer in programmers:
                 invoice[f"{invoice_map[key]}{r}"] = programmer_df[f"{df_map[key]}{i+3}"].value
         
         # Rate Card & Total
+        # for key in backfill['key']:
+        #     if key not in invoice[f"{invoice_map['network']}{r}"].value:
+        #         imp_counter += invoice[f"{invoice_map['month_imp']}{r}"].value
+
         if invoice[f"{invoice_map['network']}{r}"].value != 'Backfill Campaigns':
             imp_counter += invoice[f"{invoice_map['month_imp']}{r}"].value
 
@@ -135,7 +144,12 @@ for programmer in programmers:
             for row in range(17, 26):
                 if round(invoice[f"{invoice_map['rate_cards']}{row}"].value, 2) == current_cpm:
                     invoice[f"{invoice_map['YTD_imp']}{row}"] = f"=SUM({invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i}) + {invoice_map['previous_YTD_imp']}"
-                    for col in range(7, 12):
+                    alignment(invoice[f"{invoice_map['YTD_imp']}{row}"], 'center')
+                    if imp_counter >= 1_000_000_000:
+                        invoice[f"{invoice_map['YTD_imp']}{row}"].number_format = '#0.00,,, "B"'
+                    else:
+                        invoice[f"{invoice_map['YTD_imp']}{row}"].number_format = '#0.00,, "M"'
+                    for col in range(8, 11):
                         cell = invoice.cell(row=row, column=col)
                         cell.font = Font(name='Calibri', size=12, bold=True)
                         cell.fill = PatternFill('solid', fgColor='FFFF99')
@@ -165,11 +179,11 @@ for programmer in programmers:
     # Print Area
     invoice.print_area = f'A1:K{invoice.max_row}'
 
-    programmer_wb.save(f"new_invoices/INVOICES_{filename_date}.xlsx")
+    programmer_wb.save(f"../new_invoices/INVOICES_{filename_date}.xlsx")
 
-    # query = update(programmer[db_map['id']], imp_counter, current_cpm, invoice_num)
-    # cursor.execute(query)
-    # db.commit()
+    query = update(programmer[db_map['id']], imp_counter, current_cpm, invoice_num)
+    cursor.execute(query)
+    db.commit()
 
     invoice_timer_e = time.time()
 

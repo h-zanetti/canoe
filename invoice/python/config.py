@@ -1,20 +1,28 @@
 import datetime as dt
 import calendar
 from oracle import *
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Font, PatternFill, Alignment
 
-# Styling Classes
+# Styling Functions
 font = Font(name='Calibri', size=12)
 fill = PatternFill()
 def currency_format(cell):
     cell.number_format = '"$"#,##0.00'
 
+def alignment(cell, position):
+    cell.alignment = Alignment(horizontal=position)
+
+def basic_font(cell):
+    cell.font = Font(name='Calibri', size=12)
+
 def invoice_font(row, ws):
-    for col in range(2, 12):
+    for col in range(2, 11):
         cell = ws.cell(row=row, column=col)
         cell.font = Font(name='Calibri', size=12)
         # Currency Format
-        if col == 10 or col == 11:
+        if col == 8:
+            cell.number_format = '#,##0'
+        elif col == 9 or col == 10:
             currency_format(cell)
 
 # Invoice Information
@@ -45,7 +53,7 @@ def update(id, total_imp, rate_card, invoice_num):
 
 backfill = {
     'programmers': ['TVONE', 'REELZ', 'KIDGENIUS', 'CROWN', 'SONY', 'KABILLION'],
-    'key': ['CBFM', 'Backfill'],
+    'key': ['CBFM', 'Backfill', 'Backfill Campaign'],
     }
 
 # Date
@@ -72,7 +80,6 @@ df_map = {
 query = '''
 SELECT id, abbreviation, title, total_imp, rate_card, networks, invoice_num, start_point, bill_to, attention, address, state, contact
 FROM invoice_generator_info
-WHERE id=18
 ORDER BY TITLE
 '''
 cur = cursor.execute(query)
