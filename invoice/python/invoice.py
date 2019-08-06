@@ -63,6 +63,7 @@ for programmer in programmers:
     # Pasting Data
     i=1
     imp_counter = programmer[db_map['total_imp']]
+    backfill_impressions = 0
     r = start_point
     last_r = start_point + df_length
     while r <= last_r:
@@ -83,33 +84,40 @@ for programmer in programmers:
                 invoice[f"{invoice_map[key]}{r}"] = programmer_df[f"{df_map[key]}{i+3}"].value
         
         # Rate Card & Total
-        # for key in backfill['key']:
-        #     if key not in invoice[f"{invoice_map['network']}{r}"].value:
-        #         imp_counter += invoice[f"{invoice_map['month_imp']}{r}"].value
-
-        if invoice[f"{invoice_map['network']}{r}"].value != 'Backfill Campaigns':
+        if invoice[f"{invoice_map['network']}{r}"].value == 'Backfill Networks':
+            invoice[f"{invoice_map['cpm']}{r}"] = 0
+            invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
+            currency_format(invoice[f"{invoice_map['cpm']}{r}"])
+            currency_format(invoice[f"{invoice_map['total']}{r}"])
+        else:
             imp_counter += invoice[f"{invoice_map['month_imp']}{r}"].value
 
-        if imp_counter >= max_imp:
-            split_imp = imp_counter - max_imp
-            invoice[f"{invoice_map['month_imp']}{r}"] = programmer_df[f"{df_map['month_imp']}{i+3}"].value - split_imp
-            invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
-            invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
-            invoice_font(r, invoice)
+            if imp_counter >= max_imp:
+                split_imp = imp_counter - max_imp
+                invoice[f"{invoice_map['month_imp']}{r}"] = programmer_df[f"{df_map['month_imp']}{i+3}"].value - split_imp
+                invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
+                invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
+                invoice_font(r, invoice)
+                currency_format(invoice[f"{invoice_map['cpm']}{r}"])
+                currency_format(invoice[f"{invoice_map['total']}{r}"])
 
-            r+=1
-            invoice.insert_rows(r)
-            current_cpm = get_next_cpm(current_cpm, invoice)
-            invoice[f"{invoice_map['network']}{r}"] = invoice[f"{invoice_map['network']}{r-1}"].value
-            invoice[f"{invoice_map['month_imp']}{r}"] = split_imp
-            invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
-            invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
+                r+=1
+                invoice.insert_rows(r)
+                current_cpm = get_next_cpm(current_cpm, invoice)
+                invoice[f"{invoice_map['network']}{r}"] = invoice[f"{invoice_map['network']}{r-1}"].value
+                invoice[f"{invoice_map['month_imp']}{r}"] = split_imp
+                invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
+                invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
+                currency_format(invoice[f"{invoice_map['cpm']}{r}"])
+                currency_format(invoice[f"{invoice_map['total']}{r}"])
 
-            max_imp = get_max_imp(imp_counter)
-            last_r+=1
-        else:
-            invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
-            invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
+                max_imp = get_max_imp(imp_counter)
+                last_r+=1
+            else:
+                invoice[f"{invoice_map['cpm']}{r}"] = current_cpm
+                invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
+                currency_format(invoice[f"{invoice_map['cpm']}{r}"])
+                currency_format(invoice[f"{invoice_map['total']}{r}"])
 
         invoice_font(r, invoice)
         r+=1
@@ -119,7 +127,7 @@ for programmer in programmers:
     invoice_max = invoice.max_row + 1
     for r in range(last_r + 2, invoice_max):
         # Update sub-totals by network
-        if invoice[f"{invoice_map['sub_networks']}{r}"].value in networks_list:
+        if invoice[f"{invoice_map['sub_networks']}{r}"].value in networks_list or invoice[f"{invoice_map['sub_networks']}{r}"].value == "Backfill Networks":
             invoice[f"{invoice_map['month_imp']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},{invoice_map['sub_networks']}{r},{invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i})"
             invoice[f"{invoice_map['total']}{r}"] = f"=SUMIF({invoice_map['network']}{start_point}:{invoice_map['network']}{start_point + i},{invoice_map['sub_networks']}{r},{invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
             currency_format(invoice[f"{invoice_map['total']}{r}"])
@@ -130,7 +138,7 @@ for programmer in programmers:
 
         # Update total
         if invoice[f"{invoice_map['foot_total']}{r}"].value == 'Total:':
-            invoice[f"{invoice_map['month_imp']}{r}"] = f"=SUM({invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i})"
+            invoice[f"{invoice_map['month_imp']}{r}"] = imp_counter - programmer[db_map['total_imp']]
             local_imp = invoice[f"{invoice_map['month_imp']}{r}"].value
 
             invoice[f"{invoice_map['total']}{r}"] = f"=SUM({invoice_map['total']}{start_point}:{invoice_map['total']}{start_point + i})"
@@ -143,7 +151,7 @@ for programmer in programmers:
             # Update YTD impressions
             for row in range(17, 26):
                 if round(invoice[f"{invoice_map['rate_cards']}{row}"].value, 2) == current_cpm:
-                    invoice[f"{invoice_map['YTD_imp']}{row}"] = f"=SUM({invoice_map['month_imp']}{start_point}:{invoice_map['month_imp']}{start_point + i}) + {invoice_map['previous_YTD_imp']}"
+                    invoice[f"{invoice_map['YTD_imp']}{row}"] = imp_counter
                     alignment(invoice[f"{invoice_map['YTD_imp']}{row}"], 'center')
                     if imp_counter >= 1_000_000_000:
                         invoice[f"{invoice_map['YTD_imp']}{row}"].number_format = '#0.00,,, "B"'
