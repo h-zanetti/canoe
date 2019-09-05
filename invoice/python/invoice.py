@@ -6,7 +6,7 @@ from colorama import Fore
 from config import *
 
 # Dataframe
-df_path = f"../data/INVOICE_{start_date.strftime('%b').upper()}.xlsx"
+df_path = f"../data/{start_date.strftime('%b').upper()}_INVOICE.xlsx"
 df_wb = xl.load_workbook(df_path, data_only=True)
 
 # Date Formatting
@@ -39,7 +39,7 @@ for programmer in programmers:
     cursor.execute(query)
     invoice_num = cursor.fetchone()
     if invoices == 0:
-        invoice_num = invoice_num[0] + 3
+        invoice_num = invoice_num[0] + 4
     else:
         invoice_num = invoice_num[0] + 1
     # invoice_num = invoice_num[0] + 1
@@ -84,7 +84,7 @@ for programmer in programmers:
                 invoice[f"{invoice_map[key]}{r}"] = programmer_df[f"{df_map[key]}{i+3}"].value
         
         # Rate Card & Total
-        if invoice[f"{invoice_map['network']}{r}"].value == 'Backfill Networks':
+        if invoice[f"{invoice_map['network']}{r}"].value in backfill['keys'] or invoice[f"{invoice_map['campaign_name']}{r}"].value in backfill['keys']:
             invoice[f"{invoice_map['cpm']}{r}"] = 0
             invoice[f"{invoice_map['total']}{r}"] = f"=ROUND({invoice_map['month_imp']}{r}*({invoice_map['cpm']}{r}/1000),2)"
             currency_format(invoice[f"{invoice_map['cpm']}{r}"])

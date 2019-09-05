@@ -53,7 +53,7 @@ def update(id, total_imp, rate_card, invoice_num):
 
 backfill = {
     'programmers': ['TVONE', 'REELZ', 'KIDGENIUS', 'CROWN', 'SONY', 'KABILLION'],
-    'key': ['CBFM', 'Backfill', 'Backfill Campaign'],
+    'keys': ['CBFM', 'Backfill', 'Backfill Campaign', 'Backfill Networks', 'Canoe Backfill'],
     }
 
 # Date
