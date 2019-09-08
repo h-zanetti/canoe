@@ -51,8 +51,6 @@ for programmer in programmers:
     invoice[invoice_map['period_end']] = end_date
     if programmer[db_map['abbreviation']] == 'DISCOVERY':
         invoice['D24'] = programmer[db_map['total_imp']]
-    elif programmer[db_map['abbreviation']] == 'NBC':
-        invoice['D23'] = programmer[db_map['total_imp']]
     else:
         invoice[invoice_map['previous_YTD_imp']] = programmer[db_map['total_imp']]
 
